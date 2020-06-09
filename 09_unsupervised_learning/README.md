@@ -8,11 +8,7 @@
 
 ![](images/unsupervised_learning/clustering_example.png)
 
-# clustering
-1. K Means
-2. DBSCAN
-
-## K Means
+# K Means
 K개의 클러스터로 만들기
 
 1. 랜덤으로 센트로이드 할당
@@ -43,7 +39,7 @@ P_k = X의 모든 점들
 - KMeans 알고리즘에서 불필요한 계산을 줄인 논문 2014 [Using the Triangle Inequality to Accelerate K-Means](https://www.researchgate.net/publication/2480121_Using_the_Triangle_Inequality_to_Accelerate_K-Means)
 - 기계학습은 보통 큰 데이터셋으로 진행되기 떄문에 메모리 문제를 야기함. 미니배치로 학습하는 논문이 나옴. 2010 [Web-scale k-means clustering](https://dl.acm.org/doi/10.1145/1772690.1772862)
 
-# K 찾기
+## K 찾기
 - KMeans는 적절한 K를 알아야한다는 단점이 있다. 데이터가 N 차원이면 사실 알 수 없음
 - 적당한 K를 찾는 방법으로 아래와 같은 방법이 있다.
 1. Elbow
@@ -138,8 +134,10 @@ def fit(self, X, y=None, sample_weight=None):
 - 샘플이 파라미터가 알려지지 않은 여러 개의 혼합된 가우시안 분포에서 생성되었다고 가정하는 확률 모델.
 
 - 데이터셋 X가 다음 확률 과정을 통해 생성되었다고 가정함.
-1. 샘플마다 K개의 클러스터에서 람덤하게 한 클러스터가 선택됨. j번째 클러스터를 선택할 확률은 클러스터의 가중치로 정의됨. i번재 샘플을 위해 선택한 클러스터 인덱스는 z로 표시
+1. 샘플마다 K개의 클러스터에서 랜덤하게 한 클러스터가 선택됨. j번째 클러스터를 선택할 확률은 클러스터의 가중치로 정의됨. i번재 샘플을 위해 선택한 클러스터 인덱스는 z로 표시
 2. i번째 샘플이 j번째 클러스터에 할당되었다면, 샘플의 위치=x는 평균 뮤, 공분산이 시그마인 가우시안 분포에서 랜덤하게 샘플링 됨.
+
+![](images/unsupervised_learning/gmm.jpg)
 
 - 알고리즘
 1. 파라미터 초기화, 샘플을 클러스터에 할당
@@ -151,10 +149,16 @@ def fit(self, X, y=None, sample_weight=None):
 
 실제로 이렇게 데이터가 2d이고 클러스터 갯수가 명확한 경우는 없는데 실제로 수렴하기 힘듬.
 
+### 베이즈 가우시안 혼합 모델
+- GMM에서 사전을 이용해 사후 확률을 계산. 
+- 사후 확률 = p(z|X) = P(X|z)p(z)/p(X) (데이터 X가 주어졌을때 z 클러스터에 있을 확률)
+- 하지만 p(X)를 구하는 것은 불가능하다 -> 변분추론으로 학습.
+
+![](images/unsupervised_learning/bayes_gmm.jpg)
+
 ```python
 def fit(self, X, y=None):
     max_lower_bound = -np.infty
-    self.converged_ = False
     for n_iter in range(1, self.max_iter + 1):
         
         # 변분추론 lower bound 최대화
@@ -167,16 +171,14 @@ def fit(self, X, y=None):
         lower_bound = self._compute_lower_bound(log_resp, log_prob_norm)
         change = lower_bound - prev_lower_bound
         
-        self._print_verbose_msg_iter_end(n_iter, change)
-        
-        if abs(change) < self.tol:
-            self.converged_ = True
-            break
+
 
 def _e_step(self, X):
-    # 데이터의 확률의 평균 log, 데이터의 사후확률의 log
+    
     log_prob_norm, log_resp = self._estimate_log_prob_resp(X)
+    # 데이터의 log 확률의 평균 log, 데이터의 사후확률의 log
     return np.mean(log_prob_norm), log_resp
+
 
 # 가우시안 혼합 모델
 def _m_step(self, X, log_resp):
